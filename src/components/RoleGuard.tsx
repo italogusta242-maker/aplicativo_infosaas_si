@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,23 +10,28 @@ interface RoleGuardProps {
   allowedRoles: AllowedRole[];
 }
 
-// Cache roles per user to avoid re-fetching on every navigation
 const rolesCache: { userId: string | null; roles: string[] } = { userId: null, roles: [] };
 
 const RoleGuard = ({ allowedRoles }: RoleGuardProps) => {
   const { user, loading } = useAuth();
   const [checking, setChecking] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
+  const isMock = localStorage.getItem("USE_MOCK") === "true";
 
   useEffect(() => {
     const checkRole = async () => {
+      if (isMock) {
+        setHasAccess(true);
+        setChecking(false);
+        return;
+      }
+
       if (!user) {
         setChecking(false);
         setHasAccess(false);
         return;
       }
 
-      // Use cached roles if same user
       if (rolesCache.userId === user.id && rolesCache.roles.length > 0) {
         const allowed = allowedRoles.some((role) => rolesCache.roles.includes(role));
         setHasAccess(allowed);
@@ -58,13 +63,13 @@ const RoleGuard = ({ allowedRoles }: RoleGuardProps) => {
     if (!loading) {
       checkRole();
     }
-  }, [user, loading, allowedRoles]);
+  }, [user, loading, allowedRoles, isMock]);
 
   if (loading || checking) {
-    return null; // Don't show orange splash on navigation, parent already handles initial loading
+    return null;
   }
 
-  if (!user) {
+  if (!user && !isMock) {
     return <Navigate to="/" replace />;
   }
 

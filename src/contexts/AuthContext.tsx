@@ -25,9 +25,9 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(localStorage.getItem("USE_MOCK") === "true" ? { id: "e5e762f7-6e07-46ef-94e9-0ab1955f3a91", email: "italogusta242@gmail.com" } as any : null);
+  const [session, setSession] = useState<Session | null>(localStorage.getItem("USE_MOCK") === "true" ? { user: { id: "e5e762f7-6e07-46ef-94e9-0ab1955f3a91" } } as any : null);
+  const [loading, setLoading] = useState(localStorage.getItem("USE_MOCK") === "true" ? false : true);
   const [onboarded, setOnboarded] = useState(false);
   const [postLoginLoading, setPostLoginLoading] = useState(false);
   const [minLoadingDone, setMinLoadingDone] = useState(false);

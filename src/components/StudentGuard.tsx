@@ -10,7 +10,8 @@ const StudentGuard = () => {
 
   useEffect(() => {
     const check = async () => {
-      if (!user) {
+      const isMock = localStorage.getItem("USE_MOCK") === "true";
+      if (isMock || !user) {
         setChecking(false);
         return;
       }

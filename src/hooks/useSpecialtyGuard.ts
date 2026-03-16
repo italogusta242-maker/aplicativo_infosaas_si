@@ -17,7 +17,6 @@ function normalizeSpecialty(raw: string | null): Specialty | null {
   return null;
 }
 
-/** Returns which specialty-specific routes this specialist can access */
 export function useAllowedRoutes() {
   const { data: mySpecialty, isLoading } = useMySpecialty();
   const normalized = normalizeSpecialty(mySpecialty);
@@ -25,12 +24,13 @@ export function useAllowedRoutes() {
   return { allowed, specialty: normalized, rawSpecialty: mySpecialty, isLoading };
 }
 
-/** Redirects to /especialista if the current route is not allowed for this specialist */
 export function useSpecialtyGuard(currentPath: string) {
   const navigate = useNavigate();
   const { allowed, specialty, isLoading } = useAllowedRoutes();
+  const isMock = localStorage.getItem("USE_MOCK") === "true";
 
   useEffect(() => {
+    if (isMock) return;
     if (isLoading || !specialty) return;
 
     const protectedRoutes = ["/especialista/treinos", "/especialista/exercicios", "/especialista/dietas", "/especialista/alimentos"];
@@ -39,5 +39,5 @@ export function useSpecialtyGuard(currentPath: string) {
     if (isProtected && !allowed.some((r) => currentPath.startsWith(r))) {
       navigate("/especialista", { replace: true });
     }
-  }, [currentPath, allowed, specialty, isLoading, navigate]);
+  }, [currentPath, allowed, specialty, isLoading, navigate, isMock]);
 }

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { MOCK_STUDENTS } from "@/lib/mockData";
 
 export interface StudentWithDetails {
   id: string;
@@ -19,10 +20,27 @@ export interface StudentWithDetails {
 
 export const useSpecialistStudents = () => {
   const { user } = useAuth();
+  const isMock = localStorage.getItem("USE_MOCK") === "true";
 
   return useQuery({
     queryKey: ["specialist-students", user?.id],
     queryFn: async () => {
+      if (isMock) {
+        return MOCK_STUDENTS.map(s => ({
+          id: s.id,
+          name: s.nome,
+          email: `${s.id}@example.com`,
+          status: s.status as any,
+          specialty: "Consultoria",
+          telefone: "11999999999",
+          nascimento: "1990-01-01",
+          sexo: "Masculino",
+          peso: "80kg",
+          altura: "180cm",
+          avatar_url: s.foto,
+          created_at: new Date().toISOString(),
+        }));
+      }
       if (!user) throw new Error("Not authenticated");
 
       const { data: links, error: linksError } = await supabase
@@ -45,7 +63,6 @@ export const useSpecialistStudents = () => {
       const specMap = new Map(links.map((l) => [l.student_id, l.specialty]));
 
       return (profilesData ?? []).map((p): StudentWithDetails => {
-        // Derive status from profile status
         let status: "ativo" | "alerta" | "inativo" = "ativo";
         if (p.status === "inativo" || p.status === "cancelado") status = "inativo";
         else if (p.status === "pendente" || p.status === "pendente_onboarding") status = "alerta";
@@ -66,19 +83,19 @@ export const useSpecialistStudents = () => {
         };
       });
     },
-    enabled: !!user,
+    enabled: !!user || isMock,
   });
 };
 
-/** Returns the specialty of the currently logged-in specialist */
 export const useMySpecialty = () => {
   const { user } = useAuth();
+  const isMock = localStorage.getItem("USE_MOCK") === "true";
 
   return useQuery({
     queryKey: ["my-specialty", user?.id],
     queryFn: async () => {
+      if (isMock) return "admin";
       if (!user) throw new Error("Not authenticated");
-      // Try student_specialists first
       const { data, error } = await supabase
         .from("student_specialists")
         .select("specialty")
@@ -88,7 +105,6 @@ export const useMySpecialty = () => {
       if (error) throw error;
       if (data?.specialty) return data.specialty;
 
-      // Fallback: check user_roles for nutricionista/personal
       const { data: roles, error: rolesErr } = await supabase
         .from("user_roles")
         .select("role")
@@ -99,15 +115,16 @@ export const useMySpecialty = () => {
 
       return null;
     },
-    enabled: !!user,
+    enabled: !!user || isMock,
   });
 };
 
-/** Fetches the latest anamnese for a given student */
 export const useStudentAnamnese = (studentId: string | null) => {
+  const isMock = localStorage.getItem("USE_MOCK") === "true";
   return useQuery({
     queryKey: ["student-anamnese", studentId],
     queryFn: async () => {
+      if (isMock) return { objetivo: "Ganho de massa", experiencia_treino: "Intermediário" };
       if (!studentId) return null;
       const { data, error } = await supabase
         .from("anamnese")
@@ -119,6 +136,6 @@ export const useStudentAnamnese = (studentId: string | null) => {
       if (error) throw error;
       return data;
     },
-    enabled: !!studentId,
+    enabled: !!studentId || isMock,
   });
 };

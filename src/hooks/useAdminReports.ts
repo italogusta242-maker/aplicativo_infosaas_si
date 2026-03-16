@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { subMonths, startOfMonth, endOfMonth, format, differenceInYears, parseISO } from "date-fns";
+import { MOCK_ADMIN_KPI, MOCK_REVENUE_HISTORY } from "@/lib/mockData";
 
 // ─── Shared: fetch all plans for duration lookup ────────────
 async function fetchPlanMap(): Promise<Record<number, number>> {
@@ -22,6 +23,9 @@ export function useMRR() {
   return useQuery({
     queryKey: ["admin-mrr"],
     queryFn: async () => {
+      const isMock = localStorage.getItem("USE_MOCK") === "true";
+      if (isMock) return { mrr: MOCK_ADMIN_KPI.mrr, arpu: MOCK_ADMIN_KPI.arpu, activeCount: MOCK_ADMIN_KPI.activeCount };
+
       const [{ data, error }, planMap] = await Promise.all([
         supabase.from("subscriptions").select("plan_price").eq("status", "active"),
         fetchPlanMap(),
@@ -100,6 +104,9 @@ export function useRevenueHistory() {
   return useQuery({
     queryKey: ["admin-revenue-history"],
     queryFn: async () => {
+      const isMock = localStorage.getItem("USE_MOCK") === "true";
+      if (isMock) return MOCK_REVENUE_HISTORY;
+
       const months: { month: string; start: Date; end: Date }[] = [];
       for (let i = 5; i >= 0; i--) {
         const d = subMonths(new Date(), i);
