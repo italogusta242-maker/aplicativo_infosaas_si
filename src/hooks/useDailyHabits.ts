@@ -6,6 +6,7 @@ import { optimisticFlameUpdate } from "@/lib/flameOptimistic";
 import { checkAndUpdateFlame } from "@/lib/flameMotor";
 import { onMealToggle } from "@/lib/coachNotifications";
 import { MOCK_HABITS } from "@/lib/mockData";
+import { useHustlePoints } from "./useHustlePoints";
 
 export interface DailyHabit {
   id: string;
@@ -18,6 +19,7 @@ export interface DailyHabit {
 export function useDailyHabits(date?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { awardPoints } = useHustlePoints();
   const targetDate = date || getToday();
   const isMock = localStorage.getItem("USE_MOCK") === "true";
 
@@ -95,6 +97,11 @@ export function useDailyHabits(date?: string) {
       const newScore = Math.round(Math.min(clamped / 2.5, 1) * 10);
       optimisticFlameUpdate(queryClient, user.id, { adherenceDelta: newScore - oldScore });
       upsertHabits.mutate({ water_liters: clamped, completed_meals: habits?.completed_meals || [] });
+
+      // Award Hustle Points for hitting water goal
+      if (clamped >= 2.5 && oldWater < 2.5) {
+        awardPoints({ action: "habit_water" });
+      }
     }
   };
 
@@ -122,6 +129,11 @@ export function useDailyHabits(date?: string) {
         forceActive: !isRemoving && next.length >= 1,
       });
       upsertHabits.mutate({ water_liters: habits?.water_liters || 0, completed_meals: next });
+
+      // Award Hustle Points for completing all meals (Layer 1: Registration)
+      if (!isRemoving && next.length === mealCount) {
+        awardPoints({ action: "diet_log" });
+      }
     }
   };
 

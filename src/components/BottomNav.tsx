@@ -1,12 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { Home, Dumbbell, UtensilsCrossed, MessageCircle, User } from "lucide-react";
+import { Home, Dumbbell, UtensilsCrossed, Trophy, Users } from "lucide-react";
 
 const navItems = [
-  { to: "/", icon: Home, label: "Início" },
-  { to: "/treinos", icon: Dumbbell, label: "Treinos" },
-  { to: "/dieta", icon: UtensilsCrossed, label: "Dieta" },
-  { to: "/chat", icon: MessageCircle, label: "Chat" },
-  { to: "/perfil", icon: User, label: "Perfil" },
+  { to: "/aluno", icon: Home, label: "Início" },
+  { to: "/aluno/desafio", icon: Trophy, label: "Desafio" },
+  { to: "/aluno/treinos", icon: Dumbbell, label: "Treinos" },
+  { to: "/aluno/dieta", icon: UtensilsCrossed, label: "Dieta" },
+  { to: "/aluno/comunidade", icon: Users, label: "Comunidade" },
 ];
 
 const BottomNav = () => {
@@ -17,7 +17,7 @@ const BottomNav = () => {
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === "/"}
+            end={item.to === "/aluno"}
             className={({ isActive }) =>
               `flex flex-col items-center gap-1 px-3 py-2 transition-all duration-200 ${
                 isActive

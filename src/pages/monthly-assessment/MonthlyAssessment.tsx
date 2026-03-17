@@ -169,7 +169,7 @@ const MonthlyAssessment = () => {
     setIsSubmitting(false);
     if (result.success) {
       toast.success("Reavaliação mensal enviada com sucesso!");
-      navigate("/");
+      navigate("/aluno");
     } else {
       toast.error(result.error || "Erro ao enviar reavaliação");
     }

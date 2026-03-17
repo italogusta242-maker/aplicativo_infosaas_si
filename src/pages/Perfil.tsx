@@ -289,7 +289,7 @@ const Perfil = () => {
             className="w-full flex items-center gap-3 p-4 hover:bg-secondary/50 transition-colors text-left"
           >
             <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-              <item.icon size={18} className="text-muted-foreground" />
+              <item.icon size={18} className="text-foreground/60 dark:text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground">{item.label}</p>

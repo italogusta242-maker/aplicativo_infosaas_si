@@ -5,23 +5,22 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
-// Eagerly load structural components to avoid black screen on navigation
+// Eagerly load structural components
 import RoleGuard from "./components/RoleGuard";
 import StudentGuard from "./components/StudentGuard";
 import AppLayout from "./components/AppLayout";
 import AuthPage from "./pages/AuthPage";
-import Onboarding from "./pages/Onboarding";
 
-// Eagerly load layout shells so navigation is instant
+// Eagerly load layout shells
 import AdminLayout from "./components/admin/AdminLayout";
-import EspecialistaLayout from "./components/especialista/EspecialistaLayout";
 import CloserLayout from "./components/closer/CloserLayout";
 import CSLayout from "./components/cs/CSLayout";
 
-// Lazy load page content only
+// Lazy load page content
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const ChatEspecialistas = lazy(() => import("./pages/ChatEspecialistas"));
 const ChatConversation = lazy(() => import("./pages/ChatConversation"));
@@ -35,32 +34,20 @@ const PWAInstallBanner = lazy(() => import("./components/PWAInstallBanner"));
 
 const Treinos = lazy(() => import("./pages/Treinos"));
 const Dieta = lazy(() => import("./pages/Dieta"));
+const Desafio = lazy(() => import("./pages/Desafio"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsuarios = lazy(() => import("./pages/admin/AdminUsuarios"));
-
 const AdminEspecialistas = lazy(() => import("./pages/admin/AdminEspecialistas"));
 const AdminComunicacao = lazy(() => import("./pages/admin/AdminComunicacao"));
 const AdminRelatorios = lazy(() => import("./pages/admin/AdminRelatorios"));
-
 const AdminImportarAlunos = lazy(() => import("./pages/admin/AdminImportarAlunos"));
 const AdminPermissoes = lazy(() => import("./pages/admin/AdminPermissoes"));
 const AdminAnamneses = lazy(() => import("./pages/admin/AdminAnamneses"));
-
 const AdminClosers = lazy(() => import("./pages/admin/AdminClosers"));
-const EspecialistaDashboard = lazy(() => import("./pages/especialista/EspecialistaDashboard"));
-const EspecialistaAlunos = lazy(() => import("./pages/especialista/EspecialistaAlunos"));
-const EspecialistaPlanos = lazy(() => import("./pages/especialista/EspecialistaPlanos"));
-const EspecialistaTreino = lazy(() => import("./pages/especialista/EspecialistaTreino"));
-const EspecialistaDieta = lazy(() => import("./pages/especialista/EspecialistaDieta"));
 
-const EspecialistaChat = lazy(() => import("./pages/especialista/EspecialistaChat"));
-const EspecialistaPerfil = lazy(() => import("./pages/especialista/EspecialistaPerfil"));
-const EspecialistaAlimentos = lazy(() => import("./pages/especialista/EspecialistaAlimentos"));
-const EspecialistaExercicios = lazy(() => import("./pages/especialista/EspecialistaExercicios"));
-const EspecialistaAnamneseSplit = lazy(() => import("./pages/especialista/EspecialistaAnamneseSplit"));
-const EspecialistaIA = lazy(() => import("./pages/especialista/EspecialistaIA"));
 const MonthlyAssessment = lazy(() => import("./pages/monthly-assessment/MonthlyAssessment"));
+const Comunidade = lazy(() => import("./pages/Comunidade"));
 const CloserDashboard = lazy(() => import("./pages/closer/CloserDashboard"));
 const CloserProdutos = lazy(() => import("./pages/closer/CloserProdutos"));
 const CloserApresentacao = lazy(() => import("./pages/closer/CloserApresentacao"));
@@ -69,16 +56,16 @@ const CSAlunos = lazy(() => import("./pages/cs/CSAlunos"));
 const CSProfissionais = lazy(() => import("./pages/cs/CSProfissionais"));
 const CSRetencao = lazy(() => import("./pages/cs/CSRetencao"));
 const CSChat = lazy(() => import("./pages/cs/CSChat"));
+
 const queryClient = new QueryClient();
 
-// Invisible fallback — layout stays rendered, no visual loading indicator
 const PageLoader = () => null;
 
 const AppRoutes = () => {
   const location = useLocation();
-  const { user, loading, onboarded, setOnboarded } = useAuth();
+  const { user, loading } = useAuth();
+  const isMock = localStorage.getItem("USE_MOCK") === "true";
 
-  const isServiceRoute = location.pathname.startsWith("/admin") || location.pathname.startsWith("/especialista") || location.pathname.startsWith("/closer") || location.pathname.startsWith("/cs");
   const isInviteRoute = location.pathname.startsWith("/convite");
   const isInstallRoute = location.pathname === "/instalar";
 
@@ -94,25 +81,21 @@ const AppRoutes = () => {
     </div>
   );
 
-  // Public routes - no auth required
   if (isInviteRoute || isInstallRoute) {
     return (
       <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route path="/convite/:token" element={<ConviteAcesso />} />
-        <Route path="/instalar" element={<InstalarApp />} />
-      </Routes>
+        <Routes>
+          <Route path="/convite/:token" element={<ConviteAcesso />} />
+          <Route path="/instalar" element={<InstalarApp />} />
+        </Routes>
       </Suspense>
     );
   }
 
-  if (!user && !isServiceRoute) {
+  // Base landing: Login or direct dashboard redirect
+  if (location.pathname === "/") {
+    if (user || isMock) return <Navigate to="/aluno" replace />;
     return <AuthPage />;
-  }
-
-  // Only gate onboarding for student routes, not service routes
-  if (user && !onboarded && !isServiceRoute) {
-    return <Onboarding onComplete={() => setOnboarded(true)} />;
   }
 
   return (
@@ -122,73 +105,68 @@ const AppRoutes = () => {
         <PWAInstallBanner />
       </Suspense>
       <Suspense fallback={<PageLoader />}>
-      <Routes>
-      <Route element={<StudentGuard />}>
-        <Route element={<AppLayout dishonorMode={false} setDishonorMode={() => {}} />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/treinos" element={<Treinos />} />
-          <Route path="/dieta" element={<Dieta />} />
-          <Route path="/chat" element={<ChatEspecialistas />} />
-          <Route path="/chat/:conversationId" element={<ChatConversation />} />
-          <Route path="/perfil" element={<Perfil />} />
-          <Route path="/perfil/evolucao" element={<MinhaEvolucao />} />
-        </Route>
-        <Route path="/reavaliacao" element={<MonthlyAssessment />} />
-        <Route path="/instalar" element={<InstalarApp />} />
-        <Route path="/batalha" element={<BattleMode />} />
-      </Route>
-      <Route element={<RoleGuard allowedRoles={["admin"]} />}>
-        <Route element={<AdminLayout />}>
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/usuarios" element={<AdminUsuarios />} />
-          
-          <Route path="/admin/importar" element={<AdminImportarAlunos />} />
-          <Route path="/admin/permissoes" element={<AdminPermissoes />} />
-          <Route path="/admin/especialistas" element={<AdminEspecialistas />} />
-          <Route path="/admin/closers" element={<AdminClosers />} />
-          <Route path="/admin/comunicacao" element={<AdminComunicacao />} />
-          <Route path="/admin/relatorios" element={<AdminRelatorios />} />
-          <Route path="/admin/anamneses" element={<AdminAnamneses />} />
+        <Routes>
+          {/* Student Area Consolidated under /aluno */}
+          <Route element={<StudentGuard />}>
+            <Route path="/aluno" element={<AppLayout dishonorMode={false} setDishonorMode={() => {}} />}>
+              <Route index element={<Dashboard />} />
+              <Route path="desafio" element={<Desafio />} />
+              <Route path="treinos" element={<Treinos />} />
+              <Route path="dieta" element={<Dieta />} />
+              <Route path="comunidade" element={<Comunidade />} />
+              <Route path="chat" element={<ChatEspecialistas />} />
+              <Route path="chat/:conversationId" element={<ChatConversation />} />
+              <Route path="perfil" element={<Perfil />} />
+              <Route path="perfil/evolucao" element={<MinhaEvolucao />} />
+              <Route path="reavaliacao" element={<MonthlyAssessment />} />
+              <Route path="batalha" element={<BattleMode />} />
+            </Route>
+          </Route>
 
+          {/* Admin Area */}
+          <Route element={<RoleGuard allowedRoles={["admin"]} />}>
+            <Route element={<AdminLayout />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/usuarios" element={<AdminUsuarios />} />
+              <Route path="/admin/importar" element={<AdminImportarAlunos />} />
+              <Route path="/admin/permissoes" element={<AdminPermissoes />} />
+              <Route path="/admin/especialistas" element={<AdminEspecialistas />} />
+              <Route path="/admin/closers" element={<AdminClosers />} />
+              <Route path="/admin/comunicacao" element={<AdminComunicacao />} />
+              <Route path="/admin/relatorios" element={<AdminRelatorios />} />
+              <Route path="/admin/anamneses" element={<AdminAnamneses />} />
+            </Route>
+          </Route>
 
-        </Route>
-      </Route>
-      <Route element={<RoleGuard allowedRoles={["personal", "nutricionista"]} />}>
-        <Route element={<EspecialistaLayout />}>
-          <Route path="/especialista" element={<EspecialistaDashboard />} />
-          <Route path="/especialista/alunos" element={<EspecialistaAlunos />} />
-          <Route path="/especialista/planos" element={<EspecialistaPlanos />} />
-          <Route path="/especialista/treinos" element={<EspecialistaAlunos />} />
-          <Route path="/especialista/dietas" element={<EspecialistaAlunos />} />
-          <Route path="/especialista/anamnese/:studentId" element={<EspecialistaAnamneseSplit />} />
-          <Route path="/especialista/chat" element={<EspecialistaChat />} />
-          <Route path="/especialista/alimentos" element={<EspecialistaAlimentos />} />
-          <Route path="/especialista/exercicios" element={<EspecialistaExercicios />} />
-          <Route path="/especialista/perfil" element={<EspecialistaPerfil />} />
-          <Route path="/especialista/ia" element={<EspecialistaIA />} />
-        </Route>
-      </Route>
-      <Route element={<RoleGuard allowedRoles={["closer"]} />}>
-        <Route element={<CloserLayout />}>
-          <Route path="/closer" element={<CloserDashboard />} />
-          <Route path="/closer/produtos" element={<CloserProdutos />} />
-          <Route path="/closer/apresentacao" element={<CloserApresentacao />} />
-        </Route>
-      </Route>
-      <Route element={<RoleGuard allowedRoles={["cs"]} />}>
-        <Route element={<CSLayout />}>
-          <Route path="/cs" element={<CSDashboard />} />
-          <Route path="/cs/chat" element={<CSChat />} />
-          <Route path="/cs/alunos" element={<CSAlunos />} />
-          <Route path="/cs/profissionais" element={<CSProfissionais />} />
-          <Route path="/cs/retencao" element={<CSRetencao />} />
-        </Route>
-      </Route>
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+          {/* Business Areas */}
+          <Route element={<RoleGuard allowedRoles={["closer"]} />}>
+            <Route element={<CloserLayout />}>
+              <Route path="/closer" element={<CloserDashboard />} />
+              <Route path="/closer/produtos" element={<CloserProdutos />} />
+              <Route path="/closer/apresentacao" element={<CloserApresentacao />} />
+            </Route>
+          </Route>
+
+          <Route element={<RoleGuard allowedRoles={["cs"]} />}>
+            <Route element={<CSLayout />}>
+              <Route path="/cs" element={<CSDashboard />} />
+              <Route path="/cs/chat" element={<CSChat />} />
+              <Route path="/cs/alunos" element={<CSAlunos />} />
+              <Route path="/cs/profissionais" element={<CSProfissionais />} />
+              <Route path="/cs/retencao" element={<CSRetencao />} />
+            </Route>
+          </Route>
+
+          <Route path="*" element={<DefaultRedirect loggedIn={!!user || isMock} />} />
+        </Routes>
       </Suspense>
     </>
   );
+};
+
+const DefaultRedirect = ({ loggedIn }: { loggedIn: boolean }) => {
+  if (loggedIn) return <Navigate to="/aluno" replace />;
+  return <Navigate to="/" replace />;
 };
 
 const App = () => {
@@ -197,15 +175,17 @@ const App = () => {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AuthProvider>
-              <AppRoutes />
-            </AuthProvider>
-          </BrowserRouter>
-        </TooltipProvider>
+        <ThemeProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AuthProvider>
+                <AppRoutes />
+              </AuthProvider>
+            </BrowserRouter>
+          </TooltipProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

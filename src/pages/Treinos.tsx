@@ -29,6 +29,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToday } from "@/lib/dateUtils";
+import { useHustlePoints } from "@/hooks/useHustlePoints";
 
 // ─── Types ───────────────────────────────────────────────────
 interface ExerciseSet {
@@ -345,6 +346,7 @@ const Treinos = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { awardPoints } = useHustlePoints();
 
   const MAX_WORKOUT_SECONDS = 3 * 60 * 60; // 3 hours
 
@@ -541,6 +543,7 @@ const Treinos = () => {
       if (user) {
         checkAndUpdateFlame(user.id);
       }
+      awardPoints({ action: "workout_complete" });
     },
   });
 
@@ -881,14 +884,21 @@ const Treinos = () => {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-card border border-border rounded-xl p-6 mb-4 text-center"
+            className="flex flex-col items-center justify-center py-20 px-6 text-center space-y-6"
           >
-            <AlertTriangle size={32} className="text-accent mx-auto mb-3" />
-            <h2 className="font-cinzel text-base font-bold text-foreground mb-2">Plano em Preparação</h2>
-            <p className="text-sm text-muted-foreground">
-              Seu preparador físico está montando seu plano de treino personalizado.
-              Ele aparecerá aqui assim que estiver pronto.
-            </p>
+            <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center border border-accent/20 animate-pulse">
+              <Dumbbell size={40} className="text-accent" />
+            </div>
+            <div>
+              <h2 className="font-cinzel text-xl font-bold text-foreground mb-2 italic tracking-tighter">O FORJADOR ESTÁ TRABALHANDO</h2>
+              <p className="text-sm text-muted-foreground max-w-[280px] mx-auto leading-relaxed">
+                Seu mestre de armas está forjando um plano de elite para sua transformação. 
+                Mantenha a disciplina, o chamado virá em breve. ⚔️
+              </p>
+            </div>
+            <div className="pt-4">
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent/50">Status: Análise de Anamnese</span>
+            </div>
           </motion.div>
         )}
 
@@ -1650,17 +1660,24 @@ const Treinos = () => {
             />
           </div>
 
-          {/* Share button */}
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => shareWorkout(shareCardRef)}
-            disabled={isSharing}
-            className="w-full max-w-[360px] py-4 crimson-gradient text-primary-foreground font-cinzel font-bold text-base rounded-xl crimson-shadow tracking-wider disabled:opacity-50 flex items-center justify-center gap-3"
-          >
-            <Share2 size={20} />
-            {isSharing ? "Gerando imagem..." : "COMPARTILHAR VITÓRIA"}
-          </motion.button>
+          {/* Action Buttons */}
+          <div className="w-full max-w-[360px] flex flex-col gap-3">
+             <TestimonialPublisher onPublish={() => {
+                shareWorkout(shareCardRef);
+                toast.success("Depoimento publicado na Comunidade!");
+             }} />
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => shareWorkout(shareCardRef)}
+              disabled={isSharing}
+              className="w-full py-4 bg-secondary/80 hover:bg-secondary text-foreground font-cinzel font-bold text-sm rounded-xl tracking-wider disabled:opacity-50 flex items-center justify-center gap-3 border border-border/50 transition-colors"
+            >
+              <Share2 size={18} />
+              {isSharing ? "GERANDO..." : "COMPARTILHAR IMAGEM"}
+            </motion.button>
+          </div>
 
           {/* Skip */}
           <button
@@ -1678,6 +1695,68 @@ const Treinos = () => {
   }
 
   return null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// NEW: TESTIMONIAL MODAL
+// ═══════════════════════════════════════════════════════════
+function TestimonialPublisher({ onPublish }: { onPublish: () => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [caption, setCaption] = useState("");
+
+  const handlePublish = () => {
+    setIsOpen(false);
+    onPublish();
+  };
+
+  return (
+    <>
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => setIsOpen(true)}
+        className="w-full py-4 crimson-gradient text-primary-foreground font-cinzel font-bold text-base rounded-xl crimson-shadow tracking-wider flex items-center justify-center gap-3"
+      >
+        <span className="text-xl">🔥</span>
+        PUBLICAR NA COMUNIDADE
+      </motion.button>
+
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex flex-col justify-end">
+          <div className="absolute inset-0 bg-background/90 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
+          <motion.div 
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            className="relative bg-card w-full max-w-lg mx-auto rounded-t-3xl border-t border-border shadow-2xl p-6 pb-12 flex flex-col gap-4"
+          >
+            <div className="w-12 h-1.5 bg-secondary rounded-full mx-auto mb-2" />
+            <h3 className="font-cinzel font-bold text-lg text-foreground text-center mb-2">Registrar Depoimento</h3>
+            
+            <div className="flex border border-border/50 rounded-xl overflow-hidden bg-secondary/50 p-6 items-center justify-center cursor-pointer hover:bg-secondary transition-colors">
+              <p className="text-muted-foreground font-bold flex flex-col items-center gap-2">
+                <span className="text-2xl">📷</span>
+                Tirar Foto / Galeria
+              </p>
+            </div>
+
+            <textarea 
+               placeholder="Escreva como foi o treino (ex: 'Perna destruída demais hoje')..."
+               value={caption}
+               onChange={e => setCaption(e.target.value)}
+               className="bg-background border border-border/50 text-foreground resize-none h-24 rounded-xl p-4 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+
+            <button 
+              onClick={handlePublish}
+              className="w-full py-4 crimson-gradient text-primary-foreground font-cinzel font-bold text-sm rounded-xl crimson-shadow tracking-widest mt-2"
+            >
+              🚀 PUBLICAR POST
+            </button>
+          </motion.div>
+        </div>
+      )}
+    </>
+  );
 };
 
 export default Treinos;

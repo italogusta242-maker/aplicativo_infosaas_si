@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { SFX } from "@/hooks/useSoundEffects";
 import { optimisticFlameUpdate } from "@/lib/flameOptimistic";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, Brain, Dumbbell, UtensilsCrossed, MessageCircle, TrendingUp, Calendar, AlertTriangle, ClipboardList, ChevronRight, X, Droplets, Plus, Minus, Flame } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Brain, Dumbbell, UtensilsCrossed, MessageCircle, TrendingUp, Calendar, AlertTriangle, ClipboardList, ChevronRight, X, Droplets, Plus, Minus, Flame, Bell, User } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import InsanoLogo from "@/components/InsanoLogo";
 import DailyCheckIn, { type MentalState, mentalStateLabels, type CheckInResult } from "@/components/DailyCheckIn";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -14,11 +14,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRealPerformance } from "@/hooks/useRealPerformance";
 import PerformanceDetailModal from "@/components/PerformanceDetailModal";
+import ThemeToggle from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { getToday, getDailyValue, setDailyValue } from "@/lib/dateUtils";
 import { useDailyHabits } from "@/hooks/useDailyHabits";
 import { useFlameState } from "@/hooks/useFlameState";
-import FlameCard from "@/components/FlameCard";
+// FlameCard removed as it's now integrated into the hero card
 import FlameBanner from "@/components/FlameBanner";
 import AnamneseRequestAlert from "@/components/AnamneseRequestAlert";
 
@@ -162,6 +163,10 @@ const Dashboard = () => {
     }
   }, [todayCheckin]);
   
+  const filteredVolume = useMemo(() => {
+    return volumeFilter === "all" ? volumeDetalhado : volumeDetalhado.filter(v => v.regiao === volumeFilter);
+  }, [volumeFilter, volumeDetalhado]);
+
   // Water & meals from database
   const { waterIntake, setWater: setWaterIntake, mealsCompletedCount: mealsCompleted } = useDailyHabits();
 
@@ -357,11 +362,6 @@ const Dashboard = () => {
     </div>
   );
 
-  const statIconColor = isExtinta ? "text-[hsl(270,25%,40%)]" : isTregua ? "text-[hsl(210,40%,45%)]" : "";
-  const stats = [
-    { icon: Heart, label: "Performance", value: String(performanceScore), sub: "/100", color: statIconColor || "text-primary" },
-    { icon: Brain, label: "Mental", value: "---", sub: "", color: statIconColor || "text-accent", dynamic: true },
-  ];
 
   // Show nothing while flame state is loading to prevent flash of wrong state
   if (isFlameLoading) {
@@ -372,85 +372,132 @@ const Dashboard = () => {
   if (isMobile) {
     return (
       <div className="p-4 max-w-lg mx-auto space-y-4 relative min-h-screen transition-colors duration-500" style={{ backgroundColor: pageBg }}>
-        {/* Flame Banner */}
+        {/* Banner more subtle now */}
         <FlameBanner state={flameState} />
 
-        {/* Header */}
-        <div className="flex items-center justify-between pt-2 relative z-10">
+        {/* Header Redesigned */}
+        <div className="flex items-center justify-between pt-2 pb-4 relative z-10">
           <div className="flex items-center gap-3">
-            <InsanoLogo size={36} />
             <div>
-              <p className={`text-xs ${textMuted}`}>Bem-vindo ao Coliseu</p>
-              <h1 className="font-cinzel text-lg font-bold text-foreground">{profile?.nome?.toUpperCase() || "ATLETA"}</h1>
+              <p className={`text-[10px] font-cinzel font-semibold tracking-widest text-accent mb-0.5`}>BEM-VINDO AO COLISEU</p>
+              <h1 className="font-cinzel text-lg font-bold flex items-center gap-2">
+                <span className="text-foreground">{profile?.nome?.split(' ')[0] || "ATLETA"}</span> <span className="text-accent">—</span> <span className="text-accent">{mentalStateLabels[mentalState].label}</span>
+              </h1>
             </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Link to="/aluno/chat">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="w-10 h-10 flex items-center justify-center text-foreground hover:text-accent transition-colors"
+              >
+                <MessageCircle size={22} />
+              </motion.button>
+            </Link>
+
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="w-10 h-10 flex items-center justify-center relative group"
+            >
+              <Bell size={22} className="text-foreground transition-colors group-hover:text-accent" />
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-accent rounded-full border-2 border-background" />
+            </motion.button>
+
+            <Link to="/aluno/perfil">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="w-10 h-10 flex items-center justify-center text-foreground hover:text-accent transition-colors"
+              >
+                <User size={22} />
+              </motion.button>
+            </Link>
           </div>
         </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 gap-2 relative z-10">
-          {stats.map((stat, i) => (
-            <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-              className={`${cardBg} rounded-xl border ${cardBorder} p-3 text-center`}
-            >
-              <stat.icon size={16} className={stat.color} />
-              <p className="font-cinzel text-sm font-bold text-foreground">
-                {(stat as any).dynamic ? mentalStateLabels[mentalState].label : stat.value}
-              </p>
-              <p className="text-[10px] text-muted-foreground">{stat.sub || stat.label}</p>
-              {stat.label === "Performance" && (
-                <div className="w-full h-2 mt-2 rounded-full overflow-hidden" style={{ backgroundColor: "hsl(0, 0%, 20%)" }}>
-                  <motion.div
-                    className="h-full rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${performanceScore}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                    style={{
-                      background: isExtinta
-                        ? "linear-gradient(90deg, hsl(270, 20%, 25%), hsl(270, 35%, 45%))"
-                        : isTregua
-                        ? "linear-gradient(90deg, hsl(200, 50%, 40%), hsl(210, 70%, 55%))"
-                        : "linear-gradient(90deg, hsl(25, 100%, 50%), hsl(30, 100%, 55%))",
-                    }}
-                  />
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </div>
 
-        {/* Flame Card - Mobile */}
-        <FlameCard state={flameState} streak={streak} adherence={adherence} />
-
-        {(!hasTrainingPlan || !hasDietPlan) && <PendingPlanAlert />}
-
-        {/* Battle Button */}
+        {/* Coliseu Hero Card - Mobile */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="relative z-10"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative rounded-3xl p-6 shadow-2xl overflow-hidden bg-gradient-to-br from-[#FF6B00] to-[#FF8C33] dark:from-card dark:to-card border-none dark:border dark:border-border"
         >
-          <motion.button
-            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-            onClick={() => navigate("/treinos")}
-            disabled={!hasTrainingPlan}
-            className="w-full py-4 font-cinzel font-bold text-lg rounded-xl tracking-wider flex items-center justify-center gap-3 disabled:opacity-50"
-            style={{
-              background: buttonGradient,
-              boxShadow: buttonShadow,
-              color: "hsl(var(--foreground))",
-            }}
-          >
-            <Dumbbell size={24} />
-            {hasTrainingPlan ? "INICIAR TREINO" : "AGUARDANDO PLANO"}
-          </motion.button>
-          {hasTrainingPlan && todaySchedule.duration && (
-            <p className="text-center text-xs text-muted-foreground mt-1.5">
-              {todaySchedule.name} · {todaySchedule.duration}
-            </p>
-          )}
-          {hasTrainingPlan && !todaySchedule.duration && (
-            <p className="text-center text-xs text-muted-foreground mt-1.5">Dia de Descanso</p>
-          )}
+          {/* Subtle Background Glow - only in dark mode */}
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/10 rounded-full blur-[80px] dark:block hidden" />
+          
+          <div className="flex items-start justify-between gap-4 relative z-10">
+            <div className="flex-1 space-y-6">
+              
+              <h2 className="font-cinzel text-2xl font-black text-white leading-tight tracking-tight">
+                {hasTrainingPlan 
+                  ? `DOMINE O TREINO DE ${todaySchedule.name?.toUpperCase() || "HOJE"}`
+                  : "SUA JORNADA ÉPICA\nCOMEÇA AGORA"}
+              </h2>
+
+              <div className="space-y-2">
+                <p className="text-white dark:text-foreground/90 text-sm font-medium leading-relaxed italic">
+                  "{currentQuote.text}"
+                </p>
+                <p className="text-white/80 dark:text-accent text-[10px] font-cinzel font-bold tracking-widest uppercase">— {currentQuote.author}</p>
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate("/aluno/treinos")}
+                disabled={!hasTrainingPlan}
+                className="px-8 py-3 bg-white dark:bg-gradient-to-r dark:from-[#FF6B00] dark:to-[#FF8C33] text-accent dark:text-white font-cinzel font-black text-sm rounded-xl tracking-[0.15em] shadow-xl disabled:opacity-50 disabled:shadow-none uppercase"
+              >
+                {hasTrainingPlan ? "Iniciar Treino" : "Aguardando Plano"}
+              </motion.button>
+            </div>
+
+            {/* Flame Circle Integrated */}
+            <div className="relative w-28 h-28 flex items-center justify-center shrink-0">
+               {/* Background Circle */}
+               <svg className="w-full h-full -rotate-90">
+                 <circle
+                   cx="56" cy="56" r="48"
+                   stroke="currentColor" strokeWidth="6"
+                   fill="transparent"
+                   className="text-white/20 dark:text-white/5"
+                 />
+                 <motion.circle
+                   cx="56" cy="56" r="48"
+                   stroke="currentColor" strokeWidth="6"
+                   fill="transparent"
+                   strokeDasharray={2 * Math.PI * 48}
+                   initial={{ strokeDashoffset: 2 * Math.PI * 48 }}
+                   animate={{ strokeDashoffset: 2 * Math.PI * 48 * (1 - adherence / 100) }}
+                   transition={{ duration: 1.5, ease: "easeOut" }}
+                   strokeLinecap="round"
+                   className="text-white dark:text-accent"
+                 />
+               </svg>
+                 <div className="absolute inset-0 flex flex-col items-center justify-center pt-1">
+                 <Flame size={24} className="text-white dark:text-accent animate-pulse mb-1" />
+                 <span className="text-xl font-cinzel font-bold text-white dark:text-foreground leading-none">{adherence}%</span>
+                 <span className="text-[8px] font-cinzel font-bold text-white/80 dark:text-accent tracking-tighter mt-1 uppercase">Adesão</span>
+               </div>
+            </div>
+          </div>
+
+          <div className="flex gap-6 mt-6 pt-6 border-t border-white/20 dark:border-white/5 relative z-10 w-full justify-end">
+             <div className="text-center">
+               <p className="text-xl font-cinzel font-bold text-white">{streak}</p>
+               <p className="text-[10px] text-white/80 dark:text-muted-foreground uppercase tracking-widest">Dias Streak</p>
+             </div>
+             <div className="w-[1px] h-8 bg-white/20 dark:bg-white/10" />
+              <div className="text-center">
+               <p className="text-xl font-cinzel font-bold text-white">{(profile as any)?.ranking || 1}#</p>
+               <p className="text-[10px] text-white/80 dark:text-muted-foreground uppercase tracking-widest">Ranking Atual</p>
+             </div>
+          </div>
         </motion.div>
+
+
 
         {/* Performance Chart */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
@@ -458,8 +505,8 @@ const Dashboard = () => {
         >
           <button onClick={() => setShowPerformanceModal(true)} className="w-full text-left">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-cinzel text-sm font-bold text-foreground">Evolução de Performance</h3>
-              <span className="text-[10px] text-muted-foreground px-2 py-1 rounded bg-secondary">Ver detalhes →</span>
+              <h3 className="font-cinzel text-sm font-bold text-primary">Evolução de Performance</h3>
+              <span className="text-[10px] text-muted px-2 py-1 rounded bg-secondary">Ver detalhes →</span>
             </div>
             <div className="h-40">
               <ResponsiveContainer width="100%" height="100%">
@@ -485,10 +532,10 @@ const Dashboard = () => {
           className={`${cardBg} rounded-xl border ${cardBorder} p-4 relative z-10`}
         >
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-cinzel text-sm font-bold text-foreground">Volume Semanal</h3>
+            <h3 className="font-cinzel text-sm font-bold text-primary">Volume Semanal</h3>
             <TrendingUp size={14} className={iconAccentClass} />
           </div>
-          <p className="text-[10px] text-muted-foreground mb-3">Séries de trabalho por região</p>
+          <p className="text-[10px] text-muted mb-3">Séries de trabalho por região</p>
           <div className="space-y-3">
             {volumeResumido.map((r) => {
               const regionItems = volumeDetalhado.filter(v => v.regiao === r.grupo.toLowerCase());
@@ -530,7 +577,7 @@ const Dashboard = () => {
                     <X size={18} className="text-foreground" />
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">Limites definidos pelo especialista</p>
+                <p className="text-xs text-muted mb-3">Limites definidos pelo especialista</p>
                 <div className="flex gap-2 mb-4">
                   {(["superior", "inferior"] as const).map((f) => (
                     <button key={f} onClick={() => setVolumeFilter(f)}
@@ -588,33 +635,33 @@ const Dashboard = () => {
           <div className="space-y-3">
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className={textMuted}>Refeições</span>
+                <span className="text-muted-foreground">Refeições</span>
                 <span className="text-foreground font-semibold">{mealsCompleted} / {dailyGoals.totalMeals}</span>
               </div>
-              <div className="h-2 rounded-full overflow-hidden bg-secondary">
+              <div className="h-2 rounded-full overflow-hidden bg-muted/60 dark:bg-muted">
                 <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((mealsCompleted / dailyGoals.totalMeals) * 100, 100)}%`, background: mealBarColor }} />
               </div>
             </div>
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className={textMuted}>Sono</span>
+                <span className="text-muted-foreground">Sono</span>
                 <span className="text-foreground font-semibold">{sleepHours.toFixed(1)}h / {dailyGoals.sleepGoal}h</span>
               </div>
-              <div className="h-2 rounded-full overflow-hidden bg-secondary">
+              <div className="h-2 rounded-full overflow-hidden bg-muted/60 dark:bg-muted">
                 <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((sleepHours / dailyGoals.sleepGoal) * 100, 100)}%`, background: sleepBarColor }} />
               </div>
             </div>
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className={textMuted}>Água</span>
+                <span className="text-muted-foreground">Água</span>
                 <span className="text-foreground font-semibold">{waterIntake.toFixed(1)}L / {dailyGoals.waterGoal}L</span>
               </div>
-              <div className="h-2 rounded-full overflow-hidden bg-secondary">
+              <div className="h-2 rounded-full overflow-hidden bg-muted/60 dark:bg-muted">
                 <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((waterIntake / dailyGoals.waterGoal) * 100, 100)}%`, background: waterBarColor }} />
               </div>
               <div className="flex items-center justify-center gap-3 mt-2">
                 <button onClick={() => setWaterIntake(Math.max(0, waterIntake - 0.25))}
-                  className="w-7 h-7 rounded-full bg-secondary/50 hover:bg-secondary flex items-center justify-center transition-colors">
+                  className="w-7 h-7 rounded-full bg-muted/50 hover:bg-muted flex items-center justify-center transition-colors border border-border">
                   <Minus size={14} className="text-foreground" />
                 </button>
                 <div className="flex items-center gap-1">
@@ -622,7 +669,7 @@ const Dashboard = () => {
                   <span className="text-xs text-muted-foreground">250ml</span>
                 </div>
                 <button onClick={() => { setWaterIntake(Math.min(10, waterIntake + 0.25)); try { SFX.waterDrop(); } catch {} }}
-                  className="w-7 h-7 rounded-full bg-secondary/50 hover:bg-secondary flex items-center justify-center transition-colors">
+                  className="w-7 h-7 rounded-full bg-muted/50 hover:bg-muted flex items-center justify-center transition-colors border border-border">
                   <Plus size={14} className="text-foreground" />
                 </button>
               </div>
@@ -630,14 +677,8 @@ const Dashboard = () => {
           </div>
         </motion.div>
 
-        {/* Aggressive anamnesis request alert (specialist-triggered) */}
-        <AnamneseRequestAlert />
 
-        <MonthlyAnamnesisBanner />
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="relative z-10">
-          <StoicQuote compact />
-        </motion.div>
 
         <DailyCheckIn
           open={showCheckIn}
@@ -683,81 +724,186 @@ const Dashboard = () => {
       {/* Flame Banner - Desktop */}
       <FlameBanner state={flameState} />
 
-      {/* Desktop Header */}
-      <div className="flex items-center justify-between relative z-10">
-        <div className="flex items-center gap-4">
-          <InsanoLogo size={44} />
-          <div>
-            <p className={`text-xs ${textMuted}`}>Bem-vindo ao Coliseu</p>
-            <h1 className="font-cinzel text-2xl font-bold text-foreground">{profile?.nome?.toUpperCase() || "GLADIADOR"}</h1>
+      {/* Desktop Header Redesigned */}
+      <div className="flex items-center justify-between relative z-10 pb-6 border-b border-white/5">
+        <div className="flex items-center gap-5">
+           <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center p-1.5 border border-accent/40 shadow-[0_0_25px_rgba(255,107,0,0.15)]">
+             <div className="w-full h-full rounded-full bg-gradient-to-br from-accent to-accent-glow flex items-center justify-center">
+               <img src="/insano-logo-branco.svg" alt="Icon" className="w-8 h-8" />
+             </div>
+           </div>
+           <div>
+            <p className="text-xs font-cinzel font-semibold tracking-[0.3em] text-accent mb-1">BEM-VINDO AO COLISEU</p>
+            <h1 className="font-cinzel text-3xl font-bold flex items-center">
+              <span className="text-foreground">{profile?.nome?.toUpperCase() || "GLADIADOR"}</span>
+              <span className="text-accent mx-3">—</span>
+              <span className="text-accent">{mentalStateLabels[mentalState].label}</span>
+            </h1>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          {stats.map((stat) => (
-            <div key={stat.label} className={`flex items-center gap-2 ${cardBg} rounded-lg px-4 py-2 border ${cardBorder}`}>
-              <stat.icon size={16} className={stat.color} />
-              <div>
-                <p className="font-cinzel text-sm font-bold text-foreground">
-                  {(stat as any).dynamic ? mentalStateLabels[mentalState].label : stat.value}
-                </p>
-                <p className={`text-[10px] ${textMuted}`}>{stat.sub || stat.label}</p>
-              </div>
-            </div>
-          ))}
+        
+        <div className="flex items-center gap-6">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="w-12 h-12 flex items-center justify-center relative group"
+          >
+            <Bell size={28} className="text-foreground transition-colors group-hover:text-accent" />
+            <span className="absolute top-2 right-2 w-3 h-3 bg-accent rounded-full border-2 border-background" />
+          </motion.button>
         </div>
       </div>
 
-      {/* 3-Column Grid */}
-      <div className="grid grid-cols-3 gap-6 relative z-10">
-        {/* LEFT COLUMN */}
+      {/* Hero Card Row - Full Width */}
+      <div className="relative z-10 w-full">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative rounded-3xl bg-gradient-to-br from-[#FF6B00] to-[#FF8C33] dark:from-[#0A0A0A] dark:to-[#0A0A0A] border-none dark:border dark:border-white/5 p-10 overflow-hidden shadow-2xl flex items-center justify-between gap-12"
+        >
+          {/* Background Glows */}
+          <div className="absolute -top-40 -left-40 w-96 h-96 bg-accent/5 rounded-full blur-[120px]" />
+          <div className="absolute top-1/2 -right-20 -translate-y-1/2 w-64 h-64 bg-accent/10 rounded-full blur-[100px]" />
+
+          <div className="relative z-10 flex-1 max-w-2xl space-y-8">
+            <div className="space-y-6">
+              <h2 className="font-cinzel text-5xl font-black text-white leading-[1] tracking-tight">
+                {hasTrainingPlan 
+                  ? `DOMINE O TREINO DE ${todaySchedule.name?.toUpperCase() || "HOJE"}`
+                  : "SUA JORNADA ÉPICA COMEÇA AGORA"}
+              </h2>
+              <div className="space-y-3">
+                <p className="text-white dark:text-muted-foreground/80 text-2xl leading-relaxed italic max-w-2xl">
+                  "{currentQuote.text}"
+                </p>
+                <p className="text-white/80 dark:text-accent text-base font-cinzel font-bold tracking-[0.2em]">— {currentQuote.author}</p>
+              </div>
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate("/aluno/treinos")}
+              disabled={!hasTrainingPlan}
+              className="px-10 py-5 bg-white text-accent dark:bg-gradient-to-r dark:from-[#FF6B00] dark:to-[#FF8C33] dark:text-white font-cinzel font-black text-lg rounded-2xl tracking-[0.2em] shadow-xl dark:shadow-accent/20 disabled:opacity-50 disabled:shadow-none uppercase border-none dark:border dark:border-white/10"
+            >
+              {hasTrainingPlan ? "Iniciar Treino Agora" : "Aguardando Plano"}
+            </motion.button>
+          </div>
+
+          {/* Circular Progress Section */}
+          <div className="relative z-10 flex flex-col items-center gap-10 pr-6 shrink-0">
+             <div className="relative w-64 h-64 flex items-center justify-center">
+               <div className="absolute inset-0 rounded-full border border-white/20 dark:border-white/[0.03] animate-spin-slow" />
+               <svg className="w-full h-full -rotate-90">
+                 <circle
+                   cx="128" cy="128" r="116"
+                   stroke="currentColor" strokeWidth="10"
+                   fill="transparent"
+                   className="text-white/30 dark:text-white/5"
+                 />
+                 <motion.circle
+                   cx="128" cy="128" r="116"
+                   stroke="currentColor" strokeWidth="10"
+                   fill="transparent"
+                   strokeDasharray={2 * Math.PI * 116}
+                   initial={{ strokeDashoffset: 2 * Math.PI * 116 }}
+                   animate={{ strokeDashoffset: 2 * Math.PI * 116 * (1 - adherence / 100) }}
+                   transition={{ duration: 2, ease: "easeOut" }}
+                   strokeLinecap="round"
+                   className="text-white dark:text-accent"
+                 />
+               </svg>
+               <div className="absolute inset-0 flex flex-col items-center justify-center">
+                 <Flame size={72} className="text-white dark:text-accent animate-pulse mb-3" />
+                 <span className="text-6xl font-cinzel font-black text-white">{adherence}%</span>
+                 <span className="text-sm font-cinzel font-bold text-white/80 dark:text-accent tracking-[0.4em] mt-2 uppercase">Adesão</span>
+               </div>
+             </div>
+             
+             <div className="flex gap-10">
+                <div className="text-center">
+                  <p className="text-2xl font-cinzel font-bold text-white">{streak}</p>
+                  <p className="text-xs text-white/80 dark:text-muted-foreground uppercase tracking-widest">Dias Streak</p>
+                </div>
+                <div className="w-[1px] h-12 bg-white/30 dark:bg-white/10" />
+                 <div className="text-center">
+                  <p className="text-2xl font-cinzel font-bold text-white">{(profile as any)?.ranking || 1}#</p>
+                  <p className="text-xs text-white/80 dark:text-muted-foreground uppercase tracking-widest">Ranking Atual</p>
+                </div>
+             </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Balanced 3-Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
+        {/* COLUMN 1: Daily Targets */}
         <div className="space-y-6">
-          {/* Flame Card */}
-          <FlameCard state={flameState} streak={streak} adherence={adherence} />
-          {/* Aggressive anamnesis request alert (specialist-triggered) */}
-          <AnamneseRequestAlert />
-          {/* Monthly Anamnesis CTA */}
-          <MonthlyAnamnesisBanner />
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+            className={`${cardBg} rounded-3xl border ${cardBorder} p-8 shadow-xl`}
+          >
+            <h3 className="font-cinzel text-lg font-bold text-primary mb-6">Metas Diárias</h3>
+            <div className="space-y-6">
+              <div>
+                <div className="flex justify-between text-xs mb-2">
+                  <span className="text-muted">Refeições</span>
+                  <span className="text-primary font-semibold uppercase tracking-wider">{mealsCompleted} / {dailyGoals.totalMeals}</span>
+                </div>
+                <div className="h-2.5 rounded-full overflow-hidden bg-secondary">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((mealsCompleted / dailyGoals.totalMeals) * 100, 100)}%`, background: mealBarColor }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs mb-2">
+                  <span className="text-muted">Sono</span>
+                  <span className="text-primary font-semibold uppercase tracking-wider">{sleepHours.toFixed(1)}h / {dailyGoals.sleepGoal}h</span>
+                </div>
+                <div className="h-2.5 rounded-full overflow-hidden bg-secondary">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((sleepHours / dailyGoals.sleepGoal) * 100, 100)}%`, background: sleepBarColor }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs mb-2">
+                  <span className="text-muted">Água</span>
+                  <span className="text-primary font-semibold uppercase tracking-wider">{waterIntake.toFixed(1)}L / {dailyGoals.waterGoal}L</span>
+                </div>
+                <div className="h-2.5 rounded-full overflow-hidden bg-secondary">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((waterIntake / dailyGoals.waterGoal) * 100, 100)}%`, background: waterBarColor }} />
+                </div>
+                <div className="flex items-center justify-center gap-4 mt-4">
+                  <button onClick={() => setWaterIntake(Math.max(0, waterIntake - 0.25))}
+                    className="w-10 h-10 rounded-full bg-secondary/50 hover:bg-secondary flex items-center justify-center transition-all border border-border hover:border-border active:scale-95 shadow-lg group">
+                    <Minus size={18} className="text-primary group-hover:text-accent transition-colors" />
+                  </button>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <Droplets size={20} className={`${dropletsClass} animate-bounce-slow`} />
+                    <span className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">250ml</span>
+                  </div>
+                  <button onClick={() => { setWaterIntake(Math.min(10, waterIntake + 0.25)); try { SFX.waterDrop(); } catch {} }}
+                    className="w-10 h-10 rounded-full bg-secondary/50 hover:bg-secondary flex items-center justify-center transition-all border border-border hover:border-border active:scale-95 shadow-lg group">
+                    <Plus size={18} className="text-primary group-hover:text-accent transition-colors" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </div>
 
-        {/* CENTER COLUMN */}
-        <div className="space-y-6">
-          {(!hasTrainingPlan || !hasDietPlan) && <PendingPlanAlert />}
-
-          <motion.div>
-            <motion.button
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              onClick={() => navigate("/treinos")}
-              disabled={!hasTrainingPlan}
-              className="w-full py-5 font-cinzel font-bold text-xl rounded-xl tracking-wider flex items-center justify-center gap-3 disabled:opacity-50"
-              style={{
-                background: buttonGradient,
-                boxShadow: buttonShadow,
-                color: "hsl(var(--foreground))",
-              }}
-            >
-              <Dumbbell size={28} />
-              {hasTrainingPlan ? "INICIAR TREINO" : "AGUARDANDO PLANO"}
-            </motion.button>
-            {hasTrainingPlan && todaySchedule.duration && (
-              <p className="text-center text-xs text-muted-foreground mt-1.5">
-                {todaySchedule.name} · {todaySchedule.duration}
-              </p>
-            )}
-            {hasTrainingPlan && !todaySchedule.duration && (
-              <p className="text-center text-xs text-muted-foreground mt-1.5">Dia de Descanso</p>
-            )}
-          </motion.div>
-
-          {/* Performance Chart */}
+        {/* COLUMN 2: Performance Evolution */}
+        <div>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-            className={`${cardBg} rounded-xl border ${cardBorder} p-6`}
+            className={`${cardBg} rounded-3xl border ${cardBorder} p-8 shadow-xl h-full`}
           >
-            <button onClick={() => setShowPerformanceModal(true)} className="w-full text-left">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-cinzel text-sm font-bold text-foreground">Evolução de Performance</h3>
-                <span className="text-[10px] text-muted-foreground px-2 py-1 rounded bg-secondary">Ver detalhes →</span>
+            <button onClick={() => setShowPerformanceModal(true)} className="w-full h-full text-left flex flex-col">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-cinzel text-lg font-bold text-primary">Evolução de Performance</h3>
+                  <p className="text-xs text-muted mt-1 uppercase tracking-tight">Sua trajetória rumo ao topo do Coliseu</p>
+                </div>
+                <span className="text-[10px] text-muted px-4 py-2 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors font-cinzel font-bold">DETALHES COMPLETOS →</span>
               </div>
-              <div className="h-52">
+              <div className="flex-1 min-h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={performanceData}>
                     <defs>
@@ -769,178 +915,119 @@ const Dashboard = () => {
                     <XAxis dataKey="day" tick={{ fontSize: 11, fill: "hsl(43, 10%, 55%)" }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 11, fill: "hsl(43, 10%, 55%)" }} axisLine={false} tickLine={false} domain={[0, 100]} />
                     <Tooltip contentStyle={{ background: "hsl(0, 0%, 10%)", border: "1px solid hsl(0, 0%, 16%)", borderRadius: "8px", fontSize: "12px", color: "hsl(43, 30%, 85%)" }} />
-                    <Area type="monotone" dataKey="score" stroke={chartColor} fill="url(#perfGradDesktop)" strokeWidth={2} dot={{ fill: chartColor, r: 4 }} />
+                    <Area type="monotone" dataKey="score" stroke={chartColor} fill="url(#perfGradDesktop)" strokeWidth={3} dot={{ fill: chartColor, r: 5, stroke: '#000', strokeWidth: 2 }} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </button>
           </motion.div>
-
-          {/* Stoic Quote */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
-            <StoicQuote />
-          </motion.div>
         </div>
 
-        {/* RIGHT COLUMN */}
+        {/* COLUMN 3: Weekly Volume */}
         <div className="space-y-6">
-          {/* Volume Semanal */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className={`${cardBg} rounded-xl border ${cardBorder} p-6`}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+            className={`${cardBg} rounded-3xl border ${cardBorder} p-8 shadow-xl h-full`}
           >
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-cinzel text-sm font-bold text-foreground">Volume Semanal</h3>
-              <TrendingUp size={16} className={iconAccentClass} />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-cinzel text-lg font-bold text-primary">Volume Semanal</h3>
+              <TrendingUp size={20} className={iconAccentClass} />
             </div>
-            <p className="text-[10px] text-muted-foreground mb-3">Séries de trabalho por região</p>
-            <div className="space-y-3">
+            <p className="text-xs text-muted mb-6 uppercase tracking-wider">Séries de trabalho por região</p>
+            <div className="space-y-4">
               {volumeResumido.map((r) => {
                 const regionItems = volumeDetalhado.filter(v => v.regiao === r.grupo.toLowerCase());
                 const totalMax = regionItems.reduce((s, v) => s + (volumeLimits[v.grupo]?.max ?? 20), 0);
                 const pct = Math.min((r.series / totalMax) * 100, 100);
                 return (
                   <button key={r.grupo} onClick={() => { setVolumeFilter(r.grupo.toLowerCase() as "superior" | "inferior"); setVolumeExpanded(true); }}
-                    className="w-full p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors text-left"
+                    className="w-full p-4 rounded-2xl bg-secondary/20 hover:bg-secondary/40 transition-all text-left border border-border group"
                   >
-                    <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center justify-between mb-3">
                       <div>
-                        <p className="text-sm font-medium text-foreground">{r.grupo}</p>
-                        <p className="text-[10px] text-muted-foreground">{r.total} grupos · {r.series} séries totais</p>
+                        <p className="text-base font-bold text-primary group-hover:text-accent transition-colors">{r.grupo}</p>
+                        <p className="text-[10px] text-muted uppercase tracking-widest">{r.total} grupos · {r.series} séries totais</p>
                       </div>
-                      <ChevronRight size={16} className="text-muted-foreground" />
+                      <ChevronRight size={18} className="text-muted group-hover:translate-x-1 transition-transform" />
                     </div>
-                    <div className="h-2 rounded-full overflow-hidden bg-secondary">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: volumeBarColor }} />
+                    <div className="h-2.5 rounded-full overflow-hidden bg-secondary/50">
+                      <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${pct}%`, background: volumeBarColor }} />
                     </div>
                   </button>
                 );
               })}
             </div>
-            <VolumeLegend />
-          </motion.div>
-
-          {/* Volume Expandido Modal - Desktop */}
-          <AnimatePresence>
-            {volumeExpanded && (() => {
-              const filteredVolume = volumeFilter === "all" ? volumeDetalhado : volumeDetalhado.filter(v => v.regiao === volumeFilter);
-              return (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center p-6"
-                onClick={() => setVolumeExpanded(false)}
-              >
-                <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                  className={`${cardBg} rounded-xl border ${cardBorder} p-6 max-w-xl w-full max-h-[80vh] overflow-auto`}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-cinzel text-lg font-bold text-foreground">Volume Semanal Detalhado</h3>
-                    <button onClick={() => setVolumeExpanded(false)} className="p-2 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors">
-                      <X size={18} className="text-foreground" />
-                    </button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-3">Limites definidos pelo especialista</p>
-                  <div className="flex gap-2 mb-4">
-                    {(["superior", "inferior"] as const).map((f) => (
-                      <button key={f} onClick={() => setVolumeFilter(f)}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-cinzel font-semibold transition-colors ${volumeFilter === f ? "bg-accent/20 text-accent border border-accent/30" : "bg-secondary/30 text-muted-foreground"}`}
-                      >
-                        {f.charAt(0).toUpperCase() + f.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                  <div style={{ height: `${Math.max(filteredVolume.length * 34, 180)}px` }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={filteredVolume} layout="vertical" margin={{ left: 10 }}>
-                        <XAxis type="number" tick={{ fontSize: 10, fill: "hsl(43, 10%, 55%)" }} axisLine={false} tickLine={false} domain={[0, 'dataMax + 5']} />
-                        <YAxis type="category" dataKey="grupo" tick={{ fontSize: 10, fill: "hsl(43, 10%, 55%)" }} axisLine={false} tickLine={false} width={75} />
-                        <Tooltip content={<VolumeTooltip />} />
-                        <Bar dataKey="series" radius={[0, 4, 4, 0]}>
-                          {filteredVolume.map((entry, i) => {
-                            const limits = volumeLimits[entry.grupo] ?? { min: 10, max: 20 };
-                            return <Cell key={i} fill={getVolumeColor(entry.series, true, limits.min, limits.max)} />;
-                          })}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <VolumeLegend />
-                  <div className="mt-4 space-y-2">
-                    {filteredVolume.map((v) => {
-                      const limits = volumeLimits[v.grupo] ?? { min: 10, max: 20 };
-                      const color = getVolumeColor(v.series, true, limits.min, limits.max);
-                      return (
-                        <div key={v.grupo} className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/30">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full" style={{ background: color }} />
-                            <span className="text-sm text-foreground">{v.grupo}</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-sm font-bold text-foreground">{v.series}</span>
-                            <span className="text-[10px] text-muted-foreground ml-1">/ {limits.min}-{limits.max}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              </motion.div>
-              );
-            })()}
-          </AnimatePresence>
-
-          {/* Daily Targets */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-            className={`${cardBg} rounded-xl border ${cardBorder} p-6`}
-          >
-            <h3 className="font-cinzel text-sm font-bold text-foreground mb-4">Metas Diárias</h3>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className={textMuted}>Refeições</span>
-                  <span className="text-foreground font-semibold">{mealsCompleted} / {dailyGoals.totalMeals}</span>
-                </div>
-                <div className="h-2 rounded-full overflow-hidden bg-secondary">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((mealsCompleted / dailyGoals.totalMeals) * 100, 100)}%`, background: mealBarColor }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className={textMuted}>Sono</span>
-                  <span className="text-foreground font-semibold">{sleepHours.toFixed(1)}h / {dailyGoals.sleepGoal}h</span>
-                </div>
-                <div className="h-2 rounded-full overflow-hidden bg-secondary">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((sleepHours / dailyGoals.sleepGoal) * 100, 100)}%`, background: sleepBarColor }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className={textMuted}>Água</span>
-                  <span className="text-foreground font-semibold">{waterIntake.toFixed(1)}L / {dailyGoals.waterGoal}L</span>
-                </div>
-                <div className="h-2 rounded-full overflow-hidden bg-secondary">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((waterIntake / dailyGoals.waterGoal) * 100, 100)}%`, background: waterBarColor }} />
-                </div>
-                <div className="flex items-center justify-center gap-3 mt-2">
-                  <button onClick={() => setWaterIntake(Math.max(0, waterIntake - 0.25))}
-                    className="w-7 h-7 rounded-full bg-secondary/50 hover:bg-secondary flex items-center justify-center transition-colors">
-                    <Minus size={14} className="text-foreground" />
-                  </button>
-                  <div className="flex items-center gap-1">
-                    <Droplets size={14} className={dropletsClass} />
-                    <span className="text-xs text-muted-foreground">250ml</span>
-                  </div>
-                  <button onClick={() => { setWaterIntake(Math.min(10, waterIntake + 0.25)); try { SFX.waterDrop(); } catch {} }}
-                    className="w-7 h-7 rounded-full bg-secondary/50 hover:bg-secondary flex items-center justify-center transition-colors">
-                    <Plus size={14} className="text-foreground" />
-                  </button>
-                </div>
-              </div>
+            <div className="mt-8">
+              <VolumeLegend />
             </div>
           </motion.div>
         </div>
       </div>
 
-      {/* Daily Check-In Modal */}
+      {/* Volume Expandido Modal - Desktop */}
+      <AnimatePresence>
+        {volumeExpanded && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => setVolumeExpanded(false)}
+          >
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className={`${cardBg} rounded-3xl border ${cardBorder} p-8 max-w-xl w-full max-h-[80vh] overflow-auto shadow-2xl`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-cinzel text-xl font-bold text-primary">Volume Semanal Detalhado</h3>
+                <button onClick={() => setVolumeExpanded(false)} className="p-2 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors">
+                  <X size={20} className="text-primary" />
+                </button>
+              </div>
+              <p className="text-xs text-muted mb-4 uppercase tracking-widest">Limites definidos pelo especialista</p>
+              <div className="flex gap-2 mb-6">
+                {(["superior", "inferior"] as const).map((f) => (
+                  <button key={f} onClick={() => setVolumeFilter(f)}
+                    className={`px-6 py-2 rounded-xl text-xs font-cinzel font-semibold transition-colors ${volumeFilter === f ? "bg-accent text-white shadow-lg shadow-accent/20" : "bg-secondary text-muted hover:bg-secondary/70"}`}
+                  >
+                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <div style={{ height: `${Math.max(filteredVolume.length * 34, 200)}px` }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={filteredVolume} layout="vertical" margin={{ left: 10 }}>
+                    <XAxis type="number" tick={{ fontSize: 10, fill: "hsl(43, 10%, 55%)" }} axisLine={false} tickLine={false} domain={[0, 'dataMax + 5']} />
+                    <YAxis type="category" dataKey="grupo" tick={{ fontSize: 10, fill: "hsl(43, 10%, 55%)" }} axisLine={false} tickLine={false} width={80} />
+                    <Tooltip content={<VolumeTooltip />} />
+                    <Bar dataKey="series" radius={[0, 4, 4, 0]}>
+                      {filteredVolume.map((entry, i) => {
+                        const limits = volumeLimits[entry.grupo] ?? { min: 10, max: 20 };
+                        return <Cell key={i} fill={getVolumeColor(entry.series, true, limits.min, limits.max)} />;
+                      })}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-8 space-y-3">
+                {filteredVolume.map((v) => {
+                  const limits = volumeLimits[v.grupo] ?? { min: 10, max: 20 };
+                  const color = getVolumeColor(v.series, true, limits.min, limits.max);
+                  return (
+                    <div key={v.grupo} className="flex items-center justify-between p-4 rounded-xl bg-secondary/20 border border-border">
+                      <div className="flex items-center gap-3">
+                        <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ background: color }} />
+                        <span className="text-sm font-medium text-primary">{v.grupo}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm font-bold text-primary">{v.series}</span>
+                        <span className="text-[10px] text-muted ml-1 uppercase tracking-tighter">/ {limits.min}-{limits.max}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <DailyCheckIn
         open={showCheckIn}
         onComplete={async (result) => {
@@ -956,10 +1043,8 @@ const Dashboard = () => {
                 mood: result.mentalState === "energizado" ? 5 : result.mentalState === "focado" ? 4 : result.mentalState === "neutro" ? 3 : result.mentalState === "cansado" ? 2 : 1,
                 stress: result.mentalState === "desanimado" ? 5 : result.mentalState === "cansado" ? 4 : 3,
               });
-              // REGRA 1+2: Cancel flame queries, then inject optimistic update
               await queryClient.cancelQueries({ queryKey: ["flame-state", user.id] });
               optimisticFlameUpdate(queryClient, user.id, { adherenceDelta: 10 });
-              // Safe to invalidate checkin caches (not flame-related)
               queryClient.invalidateQueries({ queryKey: ["today-checkin"] });
               queryClient.invalidateQueries({ queryKey: ["last30-checkins"] });
             } catch (e) {

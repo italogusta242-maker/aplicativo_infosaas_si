@@ -86,7 +86,7 @@ const MinhaEvolucao = () => {
     <div className="p-4 max-w-lg mx-auto pb-24">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6 pt-2">
-        <button onClick={() => navigate("/perfil")} className="p-2 -ml-2 rounded-lg hover:bg-secondary transition-colors">
+        <button onClick={() => navigate("/aluno/perfil")} className="p-2 -ml-2 rounded-lg hover:bg-secondary transition-colors">
           <ArrowLeft size={20} className="text-foreground" />
         </button>
         <h1 className="font-cinzel text-xl font-bold text-foreground">MINHA EVOLUÇÃO</h1>

@@ -103,7 +103,7 @@ const BattleMode = () => {
     <div className="min-h-screen bg-background p-4 max-w-lg mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-4 pt-2">
-        <button onClick={() => navigate("/")} className="text-muted-foreground hover:text-foreground transition-colors">
+        <button onClick={() => navigate("/aluno")} className="text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="flex items-center gap-2">
@@ -207,7 +207,7 @@ const BattleMode = () => {
             </div>
           </div>
 
-          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/")}
+          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/aluno")}
             className="px-8 py-3 gold-gradient text-accent-foreground font-cinzel font-bold rounded-lg gold-shadow tracking-wider"
           >
             VOLTAR AO INÍCIO

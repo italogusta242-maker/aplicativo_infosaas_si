@@ -278,7 +278,7 @@ const ChatConversation = () => {
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          onClick={() => navigate("/chat")}
+          onClick={() => navigate("/aluno/chat")}
           className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
         >
           <ArrowLeft size={18} className="text-foreground" />

@@ -19,6 +19,8 @@ export const MOCK_PROFILE = {
   dracmas: 5000,
   streak: 30,
   flame_percent: 100,
+  peso: 85.5,
+  altura: 180,
 };
 
 export const MOCK_ADMIN_KPI = {

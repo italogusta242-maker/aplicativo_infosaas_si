@@ -212,8 +212,16 @@ const ChatEspecialistas = () => {
             </motion.div>
           ))
         ) : (
-          <div className="text-center text-muted-foreground text-sm py-10">
-            Nenhum membro da equipe associado ainda. Aguarde a atribuição.
+          <div className="flex-1 flex flex-col items-center justify-center py-20 px-6 text-center space-y-4">
+             <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center border border-border">
+                <Headset size={32} className="text-muted-foreground/40" />
+             </div>
+             <div>
+               <p className="text-foreground/80 font-bold text-sm uppercase tracking-wider">Aguardando Convocação</p>
+               <p className="text-muted-foreground text-xs max-w-[240px] mx-auto leading-relaxed mt-1">
+                 Nenhum membro da equipe associado ainda. Em breve seus mentores entrarão em contato.
+               </p>
+             </div>
           </div>
         )}
 

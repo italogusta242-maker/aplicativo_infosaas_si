@@ -245,9 +245,9 @@ const Dieta = () => {
 
   if (!isLoading && allMeals.length === 0) {
     return (
-      <div className="min-h-screen bg-background p-4 max-w-lg mx-auto">
+      <div className="min-h-screen bg-background p-4 max-w-lg mx-auto flex flex-col">
         <div className="flex items-center gap-3 mb-6 pt-2">
-          <button onClick={() => navigate("/")} className="text-muted-foreground hover:text-foreground">
+          <button onClick={() => navigate("/aluno")} className="text-muted-foreground hover:text-foreground">
             <ArrowLeft size={24} />
           </button>
           <div className="flex items-center gap-2">
@@ -255,15 +255,26 @@ const Dieta = () => {
             <span className="font-cinzel font-bold text-foreground">PLANO ALIMENTAR</span>
           </div>
         </div>
-        <Card className="bg-card border-border">
-          <CardContent className="p-6 text-center space-y-3">
-            <AlertTriangle size={32} className="text-accent mx-auto" />
-            <h3 className="font-cinzel font-bold text-foreground">Plano em preparação</h3>
-            <p className="text-sm text-muted-foreground">
-              Seu nutricionista está montando seu plano alimentar personalizado. Ele aparecerá aqui assim que estiver pronto.
-            </p>
-          </CardContent>
-        </Card>
+        
+        <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex-1 flex flex-col items-center justify-center py-20 px-6 text-center space-y-6"
+          >
+            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20 animate-bounce">
+              <Leaf size={40} className="text-primary" />
+            </div>
+            <div>
+              <h2 className="font-cinzel text-xl font-bold text-foreground mb-2 italic tracking-tighter uppercase text-balance">O Banquete está sendo preparado</h2>
+              <p className="text-sm text-muted-foreground max-w-[280px] mx-auto leading-relaxed">
+                Seu alquimista está selecionando os melhores nutrientes para nutrir o guerreiro em você. 
+                A nutrição de elite exige precisão. 🍎
+              </p>
+            </div>
+            <div className="pt-4">
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50">Status: Cálculo de Macros em Andamento</span>
+            </div>
+          </motion.div>
       </div>
     );
   }
@@ -271,7 +282,7 @@ const Dieta = () => {
   return (
     <div className="min-h-screen bg-background p-4 max-w-lg mx-auto pb-24">
       <div className="flex items-center gap-3 mb-6 pt-2">
-        <button onClick={() => navigate("/")} className="text-muted-foreground hover:text-foreground">
+        <button onClick={() => navigate("/aluno")} className="text-muted-foreground hover:text-foreground">
           <ArrowLeft size={24} />
         </button>
         <div className="flex items-center gap-2">
