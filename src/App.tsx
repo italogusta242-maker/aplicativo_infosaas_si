@@ -35,6 +35,7 @@ const PWAInstallBanner = lazy(() => import("./components/PWAInstallBanner"));
 const Treinos = lazy(() => import("./pages/Treinos"));
 const Dieta = lazy(() => import("./pages/Dieta"));
 const Desafio = lazy(() => import("./pages/Desafio"));
+const Financeiro = lazy(() => import("./pages/Financeiro"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsuarios = lazy(() => import("./pages/admin/AdminUsuarios"));
@@ -113,6 +114,7 @@ const AppRoutes = () => {
               <Route path="desafio" element={<Desafio />} />
               <Route path="treinos" element={<Treinos />} />
               <Route path="dieta" element={<Dieta />} />
+              <Route path="financeiro" element={<Financeiro />} />
               <Route path="comunidade" element={<Comunidade />} />
               <Route path="chat" element={<ChatEspecialistas />} />
               <Route path="chat/:conversationId" element={<ChatConversation />} />

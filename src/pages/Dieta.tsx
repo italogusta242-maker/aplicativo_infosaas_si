@@ -1,13 +1,14 @@
-import { useState, useMemo } from "react";
-import { ArrowLeft, Leaf, Clock, Flame, Check, AlertTriangle, ChevronDown, ChevronUp, ArrowLeftRight, MessageSquare, Target, Repeat2 } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { ArrowLeft, Leaf, Clock, Flame, Check, AlertTriangle, ChevronDown, ChevronUp, ArrowLeftRight, MessageSquare, Target, Repeat2, Droplets, Plus, Dumbbell, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { getToday } from "@/lib/dateUtils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDailyHabits } from "@/hooks/useDailyHabits";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 // ── Types ──
 interface FoodSubstitute {
@@ -88,6 +89,51 @@ const getBaseMealName = (name: string): string => {
 const Dieta = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const todayStr = getToday();
+  const { data: nutritionLog } = useQuery({
+    queryKey: ["nutrition_log", user?.id, todayStr],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("nutrition_logs")
+        .select("*")
+        .eq("user_id", user?.id)
+        .eq("date", todayStr)
+        .maybeSingle();
+
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const waterML = nutritionLog?.water_ml || 0;
+  const WATER_GOAL = 3000;
+
+  const updateWaterMutation = useMutation({
+    mutationFn: async (amount: number) => {
+      const newAmount = Math.max(0, waterML + amount);
+      if (nutritionLog?.id) {
+        const { error } = await (supabase as any)
+          .from("nutrition_logs")
+          .update({ water_ml: newAmount })
+          .eq("id", nutritionLog.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from("nutrition_logs")
+          .insert([{ user_id: user?.id, date: todayStr, water_ml: newAmount }]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["nutrition_log"] });
+    },
+    onError: (error) => {
+      toast.error("Erro ao atualizar água: " + error.message);
+    }
+  });
 
   const { data: dietPlan, isLoading } = useQuery({
     queryKey: ["diet-plan", user?.id],
@@ -243,6 +289,26 @@ const Dieta = () => {
     );
   }, [mainMeals]);
 
+  const consumedMacros = useMemo(() => {
+    return mainMeals.reduce(
+      (acc, meal) => {
+        if (!completedMeals.has(meal.id)) return acc;
+        
+        const selectedAltIdx = selectedAlternative[meal.id];
+        const displayMeal = selectedAltIdx !== undefined ? groupedMeals.find(g => g.main.id === meal.id)?.alternatives[selectedAltIdx] : meal;
+        const actualMeal = displayMeal || meal;
+
+        return {
+          cal: acc.cal + actualMeal.calories,
+          prot: acc.prot + actualMeal.macros.protein,
+          carb: acc.carb + actualMeal.macros.carbs,
+          fat: acc.fat + actualMeal.macros.fats,
+        };
+      },
+      { cal: 0, prot: 0, carb: 0, fat: 0 }
+    );
+  }, [mainMeals, completedMeals, selectedAlternative, groupedMeals]);
+
   if (!isLoading && allMeals.length === 0) {
     return (
       <div className="min-h-screen bg-background p-4 max-w-lg mx-auto flex flex-col">
@@ -291,26 +357,114 @@ const Dieta = () => {
         </div>
       </div>
 
-      {/* Macros totais */}
-      <Card className="bg-card border-border mb-4">
-        <CardContent className="p-4">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Macros do Dia</p>
-          <div className="grid grid-cols-4 gap-3 text-center">
-            {[
-              { label: "Calorias", value: totalMacros.cal, unit: "kcal", color: "text-accent" },
-              { label: "Proteína", value: totalMacros.prot, unit: "g", color: "text-destructive" },
-              { label: "Carbs", value: totalMacros.carb, unit: "g", color: "text-primary" },
-              { label: "Gordura", value: totalMacros.fat, unit: "g", color: "text-accent" },
-            ].map((m) => (
-              <div key={m.label}>
-                <p className={`font-cinzel text-lg font-bold ${m.color}`}>{m.value}</p>
-                <p className="text-[10px] text-muted-foreground">{m.unit}</p>
-                <p className="text-[10px] text-muted-foreground">{m.label}</p>
-              </div>
-            ))}
+      {/* Painel Metabólico Avançado (Nível 4) */}
+      <div className="grid grid-cols-1 gap-4 mb-6">
+        
+        {/* Macros Progress */}
+        <Card className="bg-card border-border overflow-hidden">
+          <div className="flex items-center gap-2 p-4 pb-2 border-b border-white/5 bg-white/[0.02]">
+            <Flame size={16} className="text-accent" />
+            <h3 className="font-cinzel text-sm font-bold uppercase tracking-widest">Painel Metabólico</h3>
           </div>
-        </CardContent>
-      </Card>
+          <CardContent className="p-4 space-y-5">
+             <div className="space-y-4">
+                {[
+                  { label: "Calorias", current: consumedMacros.cal, target: totalMacros.cal, color: "bg-accent", text: "text-accent", unit: "kcal" },
+                  { label: "Proteína", current: consumedMacros.prot, target: totalMacros.prot, color: "bg-destructive", text: "text-destructive", unit: "g" },
+                  { label: "Carboidrato", current: consumedMacros.carb, target: totalMacros.carb, color: "bg-primary", text: "text-primary", unit: "g" },
+                  { label: "Gordura", current: consumedMacros.fat, target: totalMacros.fat, color: "bg-orange-500", text: "text-orange-500", unit: "g" },
+                ].map((m) => {
+                  const percent = m.target > 0 ? Math.min(100, (m.current / m.target) * 100) : 0;
+                  return (
+                    <div key={m.label} className="relative">
+                      <div className="flex justify-between text-xs mb-1.5">
+                        <span className="font-bold text-foreground">{m.label}</span>
+                        <div className="flex gap-1 items-baseline">
+                          <span className={`font-cinzel font-bold ${m.text}`}>{m.current}</span>
+                          <span className="text-[10px] text-muted-foreground">/ {m.target} {m.unit}</span>
+                        </div>
+                      </div>
+                      <div className="h-2 w-full bg-background rounded-full overflow-hidden border border-border/50">
+                        <motion.div 
+                          className={`h-full ${m.color} relative`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${percent}%` }}
+                          transition={{ duration: 1, delay: 0.1 }}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/20" />
+                        </motion.div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+          </CardContent>
+        </Card>
+
+        {/* Hidratação & Suplementação Grid */}
+        <div className="grid grid-cols-2 gap-4">
+           {/* Water Tracker */}
+           <Card className="bg-card border-border flex flex-col">
+            <div className="flex items-center gap-2 p-3 border-b border-white/5 bg-white/[0.02]">
+              <Droplets size={14} className="text-blue-400" />
+              <h3 className="font-cinzel text-xs font-bold uppercase tracking-widest text-blue-400">Hidratação</h3>
+            </div>
+            <CardContent className="p-4 flex-1 flex flex-col items-center justify-center relative">
+               <div className="relative w-24 h-24 flex items-center justify-center mb-4">
+                  <svg className="absolute inset-0 w-full h-full -rotate-90">
+                    <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-muted/20" />
+                    <motion.circle 
+                      cx="48" cy="48" r="40" 
+                      stroke="currentColor" strokeWidth="6" fill="transparent" strokeLinecap="round"
+                      className="text-blue-500"
+                      strokeDasharray={251.2}
+                      initial={{ strokeDashoffset: 251.2 }}
+                      animate={{ strokeDashoffset: 251.2 - ((Math.min(waterML, WATER_GOAL) / WATER_GOAL) * 251.2) }}
+                      transition={{ duration: 0.5 }}
+                    />
+                  </svg>
+                  <div className="text-center">
+                    <span className="block font-cinzel text-lg font-bold text-blue-400 tracking-tighter">{waterML}</span>
+                    <span className="block text-[9px] uppercase tracking-widest text-muted-foreground">/ {WATER_GOAL}ml</span>
+                  </div>
+               </div>
+
+               <div className="flex gap-2 w-full">
+                 <button 
+                   onClick={() => updateWaterMutation.mutate(250)}
+                   disabled={updateWaterMutation.isPending}
+                   className="flex-1 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold hover:bg-blue-500/20 transition-all flex items-center justify-center gap-1 active:scale-95"
+                 >
+                   <Plus size={14} strokeWidth={3} /> 250ml
+                 </button>
+               </div>
+            </CardContent>
+          </Card>
+
+           {/* Supplements */}
+           <Card className="bg-card border-border flex flex-col">
+            <div className="flex items-center gap-2 p-3 border-b border-white/5 bg-white/[0.02]">
+              <Zap size={14} className="text-yellow-400" />
+              <h3 className="font-cinzel text-xs font-bold uppercase tracking-widest text-yellow-400">Pilha Diária</h3>
+            </div>
+            <CardContent className="p-3 flex-1 flex flex-col gap-2">
+               {["Creatina 5g", "Whey Protein", "Ômega 3"].map((sup, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-secondary/40 border border-border/50 text-left">
+                    <span className="text-xs font-bold text-foreground/90">{sup}</span>
+                    <div className="w-4 h-4 rounded-full border border-muted-foreground/30 flex items-center justify-center bg-background shrink-0">
+                      <Check size={10} className="text-transparent" />
+                    </div>
+                  </div>
+               ))}
+               <div className="mt-auto pt-2 border-t border-white/5">
+                 <p className="text-[9px] text-muted-foreground/60 text-center uppercase tracking-[0.2em] font-medium">
+                   Protocolo Insano
+                 </p>
+               </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {dietPlan?.goal_description && (
         <GoalDescriptionCard description={dietPlan.goal_description} />

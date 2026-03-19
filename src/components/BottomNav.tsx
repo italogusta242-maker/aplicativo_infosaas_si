@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { Home, Dumbbell, UtensilsCrossed, Trophy, Users } from "lucide-react";
+import { Home, Dumbbell, UtensilsCrossed, Trophy, Users, Wallet } from "lucide-react";
 
 const navItems = [
   { to: "/aluno", icon: Home, label: "Início" },
   { to: "/aluno/desafio", icon: Trophy, label: "Desafio" },
   { to: "/aluno/treinos", icon: Dumbbell, label: "Treinos" },
   { to: "/aluno/dieta", icon: UtensilsCrossed, label: "Dieta" },
+  { to: "/aluno/financeiro", icon: Wallet, label: "Financeiro" },
   { to: "/aluno/comunidade", icon: Users, label: "Comunidade" },
 ];
 
